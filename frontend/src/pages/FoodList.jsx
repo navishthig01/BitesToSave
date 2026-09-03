@@ -1,153 +1,168 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 function FoodList() {
-    const [foods, setFoods] = useState([
-        {
-            id: 1,
-            name: "Vegetable Rice",
-            type: "Cooked Meal",
-            quantity: 25,
-            meals: 25,
-            vegetarian: true,
-            location: "Anekal",
-            deadline: "Today, 7:00 PM",
-            status: "available"
-        },
-        {
-            id: 2,
-            name: "Chapati & Dal",
-            type: "Cooked Meal",
-            quantity: 30,
-            meals: 30,
-            vegetarian: true,
-            location: "Electronic City",
-            deadline: "Today, 8:30 PM",
-            status: "available"
-        },
-        {
-            id: 3,
-            name: "Fresh Bread",
-            type: "Bakery",
-            quantity: 15,
-            meals: 15,
-            vegetarian: true,
-            location: "Bommasandra",
-            deadline: "Tomorrow, 9:00 AM",
-            status: "available"
-        },
-        {
-            id: 4,
-            name: "Paneer Curry",
-            type: "Cooked Meal",
-            quantity: 20,
-            meals: 20,
-            vegetarian: true,
-            location: "Anekal",
-            deadline: "Today, 6:30 PM",
-            status: "available"
-        },
-        {
-            id: 5,
-            name: "Veg Sandwiches",
-            type: "Snacks",
-            quantity: 18,
-            meals: 18,
-            vegetarian: true,
-            location: "Electronic City",
-            deadline: "Today, 9:00 PM",
-            status: "available"
-        },
-        {
-            id: 6,
-            name: "Mixed Rice Meals",
-            type: "Cooked Meal",
-            quantity: 12,
-            meals: 12,
-            vegetarian: false,
-            location: "Bommasandra",
-            deadline: "Tomorrow, 10:00 AM",
-            status: "available"
-        }
-    ]);
+    const [foods, setFoods] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [requestMessage, setRequestMessage] = useState("");
+    const [requestingId, setRequestingId] = useState(null);
+    const [requestedIds, setRequestedIds] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState("");
-    const [locationFilter, setLocationFilter] = useState("All");
-    const [vegetarianOnly, setVegetarianOnly] = useState(false);
 
-    const handleRequest = (id) => {
-        setFoods((currentFoods) =>
-            currentFoods.map((food) =>
-                food.id === id
-                    ? {
-                        ...food,
-                        status: "requested"
-                    }
-                    : food
-            )
-        );
-    };
+    useEffect(() => {
+        const fetchFoods = async () => {
+            try {
+                setLoading(true);
+                setError("");
 
-    const resetFilters = () => {
-        setSearchTerm("");
-        setLocationFilter("All");
-        setVegetarianOnly(false);
+                const response = await fetch(
+                    "http://localhost:5000/api/food"
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message || "Failed to fetch food"
+                    );
+                }
+
+                setFoods(data.food || []);
+            } catch (error) {
+                console.error("Fetch food error:", error);
+                setError(
+                    "Unable to load food donations from the server."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFoods();
+    }, []);
+
+    const handleRequest = async (foodId) => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            setRequestMessage("Please login as an NGO to request food.");
+            return;
+        }
+
+        try {
+            setRequestingId(foodId);
+            setRequestMessage("");
+            setError("");
+
+            const response = await fetch(
+                "http://localhost:5000/api/requests",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        foodId: foodId
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setRequestMessage(
+                    data.message || "Unable to request food."
+                );
+                return;
+            }
+
+            setRequestedIds((currentIds) => [
+                ...currentIds,
+                foodId
+            ]);
+
+            setRequestMessage(
+                "Food request created successfully!"
+            );
+        } catch (error) {
+            console.error("Request food error:", error);
+            setRequestMessage(
+                "Unable to connect to the server."
+            );
+        } finally {
+            setRequestingId(null);
+        }
     };
 
     const filteredFoods = useMemo(() => {
         return foods.filter((food) => {
-            const matchesSearch =
-                food.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                food.type.toLowerCase().includes(searchTerm.toLowerCase());
+            const name =
+                food.foodName?.toLowerCase() || "";
 
-            const matchesLocation =
-                locationFilter === "All" ||
-                food.location === locationFilter;
-
-            const matchesVegetarian =
-                !vegetarianOnly || food.vegetarian;
+            const description =
+                food.description?.toLowerCase() || "";
 
             return (
-                matchesSearch &&
-                matchesLocation &&
-                matchesVegetarian
+                name.includes(searchTerm.toLowerCase()) ||
+                description.includes(searchTerm.toLowerCase())
             );
         });
-    }, [foods, searchTerm, locationFilter, vegetarianOnly]);
+    }, [foods, searchTerm]);
 
     return (
         <div className="food-page">
+
             <nav className="navbar">
+
                 <div className="logo">
                     🍽️ BitesToSave
                 </div>
 
                 <div className="nav-links">
-                    <Link to="/">Home</Link>
+
+                    <Link to="/">
+                        Home
+                    </Link>
+
+                    <Link to="/dashboard">
+                        Dashboard
+                    </Link>
 
                     <Link to="/add-food">
                         <button className="login-btn">
                             Donate Food
                         </button>
                     </Link>
+
                 </div>
+
             </nav>
 
             <div className="food-container">
 
-                {/* HEADER */}
+                {/* Header */}
+
                 <div className="food-header">
+
                     <div>
+
                         <p className="tagline">
                             AVAILABLE DONATIONS
                         </p>
 
-                        <h1>Find Food Near You</h1>
+                        <h1>
+                            Find Food Near You
+                        </h1>
 
                         <p>
-                            Discover surplus food donated by restaurants
-                            and help make every meal count.
+                            Discover surplus food donated by
+                            restaurants and help make every
+                            meal count.
                         </p>
+
                     </div>
 
                     <Link to="/add-food">
@@ -155,210 +170,283 @@ function FoodList() {
                             + Add Donation
                         </button>
                     </Link>
+
                 </div>
 
-                {/* FILTERS */}
+                {/* Search */}
+
                 <div className="food-filters">
 
                     <div className="search-box">
-                        <span>🔎</span>
+
+                        <span>
+                            🔎
+                        </span>
 
                         <input
                             type="text"
-                            placeholder="Search food or food type..."
+                            placeholder="Search food..."
                             value={searchTerm}
                             onChange={(e) =>
                                 setSearchTerm(e.target.value)
                             }
                         />
+
                     </div>
-
-                    <select
-                        value={locationFilter}
-                        onChange={(e) =>
-                            setLocationFilter(e.target.value)
-                        }
-                    >
-                        <option value="All">
-                            All Locations
-                        </option>
-
-                        <option value="Anekal">
-                            Anekal
-                        </option>
-
-                        <option value="Electronic City">
-                            Electronic City
-                        </option>
-
-                        <option value="Bommasandra">
-                            Bommasandra
-                        </option>
-                    </select>
-
-                    <label className="vegetarian-filter">
-                        <input
-                            type="checkbox"
-                            checked={vegetarianOnly}
-                            onChange={(e) =>
-                                setVegetarianOnly(e.target.checked)
-                            }
-                        />
-
-                        Vegetarian only
-                    </label>
 
                     <button
                         type="button"
                         className="reset-btn"
-                        onClick={resetFilters}
+                        onClick={() => setSearchTerm("")}
                     >
                         Reset
                     </button>
+
                 </div>
 
-                {/* RESULT INFO */}
-                <div className="food-result-bar">
-                    <div>
-                        <strong>
-                            {filteredFoods.length}
-                        </strong>{" "}
-                        {filteredFoods.length === 1
-                            ? "donation"
-                            : "donations"}{" "}
-                        available
+                {/* Request Message */}
+
+                {requestMessage && (
+                    <div className="request-success-message">
+                        ✓ {requestMessage}
                     </div>
+                )}
 
-                    {(searchTerm ||
-                        locationFilter !== "All" ||
-                        vegetarianOnly) && (
-                        <span>
-                            Filters applied
-                        </span>
-                    )}
-                </div>
+                {/* Result Count */}
 
-                {/* FOOD CARDS */}
-                {filteredFoods.length > 0 ? (
-                    <div className="food-grid">
+                {!loading && !error && (
+                    <div className="food-result-bar">
 
-                        {filteredFoods.map((food) => (
-                            <div
-                                className="food-card"
-                                key={food.id}
-                            >
-                                <div className="food-card-top">
-                                    <span className="food-emoji">
-                                        🍱
-                                    </span>
-
-                                    <span
-                                        className={
-                                            food.status === "requested"
-                                                ? "requested-badge"
-                                                : "available-badge"
-                                        }
-                                    >
-                                        {food.status === "requested"
-                                            ? "Requested"
-                                            : "Available"}
-                                    </span>
-                                </div>
-
-                                <h2>{food.name}</h2>
-
-                                <p className="food-type">
-                                    {food.type}
-                                </p>
-
-                                <div className="food-details">
-
-                                    <div>
-                                        <strong>
-                                            {food.quantity}
-                                        </strong>
-
-                                        <span>
-                                            Items
-                                        </span>
-                                    </div>
-
-                                    <div>
-                                        <strong>
-                                            {food.meals}
-                                        </strong>
-
-                                        <span>
-                                            Meals
-                                        </span>
-                                    </div>
-
-                                    <div>
-                                        <strong>
-                                            {food.vegetarian
-                                                ? "Yes"
-                                                : "No"}
-                                        </strong>
-
-                                        <span>
-                                            Vegetarian
-                                        </span>
-                                    </div>
-
-                                </div>
-
-                                <div className="food-location">
-                                    📍 {food.location}
-                                </div>
-
-                                <div className="food-deadline">
-                                    ⏰ Pickup by {food.deadline}
-                                </div>
-
-                                <button
-                                    className={
-                                        food.status === "requested"
-                                            ? "claim-btn requested-btn"
-                                            : "claim-btn"
-                                    }
-                                    onClick={() =>
-                                        handleRequest(food.id)
-                                    }
-                                    disabled={
-                                        food.status === "requested"
-                                    }
-                                >
-                                    {food.status === "requested"
-                                        ? "✓ Food Requested"
-                                        : "Request Food"}
-                                </button>
-                            </div>
-                        ))}
+                        <div>
+                            <strong>
+                                {filteredFoods.length}
+                            </strong>{" "}
+                            {filteredFoods.length === 1
+                                ? "donation"
+                                : "donations"}{" "}
+                            available
+                        </div>
 
                     </div>
-                ) : (
+                )}
+
+                {/* Loading */}
+
+                {loading && (
                     <div className="empty-food-state">
+
                         <div className="empty-food-icon">
-                            🔍
+                            ⏳
                         </div>
 
                         <h2>
-                            No food donations found
+                            Loading donations...
                         </h2>
 
                         <p>
-                            Try changing your search or filters
-                            to find available donations.
+                            Getting the latest food donations
+                            from BitesToSave.
+                        </p>
+
+                    </div>
+                )}
+
+                {/* Error */}
+
+                {!loading && error && (
+                    <div className="empty-food-state">
+
+                        <div className="empty-food-icon">
+                            ⚠️
+                        </div>
+
+                        <h2>
+                            Unable to load donations
+                        </h2>
+
+                        <p>
+                            {error}
                         </p>
 
                         <button
                             className="primary-btn"
-                            onClick={resetFilters}
+                            onClick={() =>
+                                window.location.reload()
+                            }
                         >
-                            Clear Filters
+                            Try Again
                         </button>
+
                     </div>
                 )}
+
+                {/* Food Cards */}
+
+                {!loading &&
+                    !error &&
+                    filteredFoods.length > 0 && (
+
+                        <div className="food-grid">
+
+                            {filteredFoods.map((food) => {
+
+                                const requested =
+                                    requestedIds.includes(
+                                        food._id
+                                    );
+
+                                const isRequesting =
+                                    requestingId === food._id;
+
+                                return (
+                                    <div
+                                        className="food-card"
+                                        key={food._id}
+                                    >
+
+                                        <div className="food-card-top">
+
+                                            <span className="food-emoji">
+                                                🍱
+                                            </span>
+
+                                            <span
+                                                className={
+                                                    requested
+                                                        ? "requested-badge"
+                                                        : "available-badge"
+                                                }
+                                            >
+                                                {requested
+                                                    ? "Requested"
+                                                    : food.status ||
+                                                      "Available"}
+                                            </span>
+
+                                        </div>
+
+                                        <h2>
+                                            {food.foodName}
+                                        </h2>
+
+                                        <p className="food-type">
+                                            Food Donation
+                                        </p>
+
+                                        <p>
+                                            {food.description}
+                                        </p>
+
+                                        <div className="food-details">
+
+                                            <div>
+                                                <strong>
+                                                    {food.quantity}
+                                                </strong>
+
+                                                <span>
+                                                    Items
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <strong>
+                                                    {food.quantity}
+                                                </strong>
+
+                                                <span>
+                                                    Meals
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <strong>
+                                                    —
+                                                </strong>
+
+                                                <span>
+                                                    Vegetarian
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                        <div className="food-location">
+                                            📍{" "}
+                                            {food.restaurant?.name ||
+                                                "Restaurant"}
+                                        </div>
+
+                                        <div className="food-deadline">
+                                            ⏰ Pickup before{" "}
+                                            {food.expiryTime
+                                                ? new Date(
+                                                    food.expiryTime
+                                                ).toLocaleString()
+                                                : "Not specified"}
+                                        </div>
+
+                                        <button
+                                            className={
+                                                requested
+                                                    ? "claim-btn requested-btn"
+                                                    : "claim-btn"
+                                            }
+                                            onClick={() =>
+                                                handleRequest(
+                                                    food._id
+                                                )
+                                            }
+                                            disabled={
+                                                requested ||
+                                                isRequesting
+                                            }
+                                        >
+                                            {requested
+                                                ? "✓ Food Requested"
+                                                : isRequesting
+                                                    ? "Requesting..."
+                                                    : "Request Food"}
+                                        </button>
+
+                                    </div>
+                                );
+                            })}
+
+                        </div>
+                    )}
+
+                {/* Empty */}
+
+                {!loading &&
+                    !error &&
+                    filteredFoods.length === 0 && (
+
+                        <div className="empty-food-state">
+
+                            <div className="empty-food-icon">
+                                🔍
+                            </div>
+
+                            <h2>
+                                No food donations found
+                            </h2>
+
+                            <p>
+                                Try another search.
+                            </p>
+
+                            <button
+                                className="primary-btn"
+                                onClick={() =>
+                                    setSearchTerm("")
+                                }
+                            >
+                                Clear Search
+                            </button>
+
+                        </div>
+                    )}
 
             </div>
         </div>
