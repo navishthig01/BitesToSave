@@ -524,3 +524,163 @@ footer .copyright {
     font-size: 32px;
   }
 }
+
+/* Interactive Food Filters */
+
+.food-filters {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0 14px;
+  background: #fff;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 12px 0;
+  font-size: 14px;
+}
+
+.food-filters select {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.vegetarian-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vegetarian-filter input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.reset-btn {
+  border: 1px solid #198754;
+  background: white;
+  color: #198754;
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reset-btn:hover {
+  background: #e6f7ed;
+}
+
+.food-result-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.food-result-bar strong {
+  color: #198754;
+  font-size: 18px;
+}
+
+.food-result-bar span {
+  background: #eef7f1;
+  color: #198754;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.requested-badge {
+  background: #fff3cd;
+  color: #856404;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.requested-btn {
+  background: #6c757d;
+  cursor: default;
+}
+
+.requested-btn:hover {
+  background: #6c757d;
+}
+
+.empty-food-state {
+  text-align: center;
+  background: white;
+  border-radius: 18px;
+  padding: 70px 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+.empty-food-icon {
+  font-size: 50px;
+  margin-bottom: 15px;
+}
+
+.empty-food-state h2 {
+  margin-bottom: 10px;
+}
+
+.empty-food-state p {
+  color: #777;
+  margin-bottom: 25px;
+}
+
+@media (max-width: 700px) {
+  .food-filters {
+    align-items: stretch;
+  }
+
+  .search-box {
+    min-width: 100%;
+  }
+
+  .food-filters select,
+  .reset-btn {
+    width: 100%;
+  }
+
+  .vegetarian-filter {
+    padding: 5px 0;
+  }
+
+  .food-result-bar {
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+}

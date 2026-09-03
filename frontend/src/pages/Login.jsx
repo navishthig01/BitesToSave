@@ -50,9 +50,9 @@ function Login() {
 
             setMessage("Login successful!");
 
-            // Go to Change Password page
+            // Go to Dashboard
             setTimeout(() => {
-                navigate("/change-password");
+                navigate("/dashboard");
             }, 1000);
 
         } catch (error) {
