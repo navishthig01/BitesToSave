@@ -1,0 +1,206 @@
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+// ===============================
+// REGISTER USER
+// ===============================
+const registerUser = async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
+
+        // Check required fields
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({
+                message: "Please provide all required fields"
+            });
+        }
+
+        // Check valid role
+        if (!["restaurant", "ngo", "admin"].includes(role)) {
+            return res.status(400).json({
+                message: "Invalid user role"
+            });
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+
+        if (existingUser) {
+            return res.status(400).json({
+                message: "User with this email already exists"
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            role
+        });
+
+        // Send response
+        res.status(201).json({
+            message: "User registered successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Registration error:", error.message);
+
+        res.status(500).json({
+            message: "Server error"
+        });
+    }
+};
+
+
+// ===============================
+// LOGIN USER
+// ===============================
+const loginUser = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Check required fields
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Please provide email and password"
+            });
+        }
+
+        // Find user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        // Compare password
+        const isPasswordCorrect = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!isPasswordCorrect) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        // Create JWT token
+        const token = jwt.sign(
+            {
+                id: user._id,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        );
+
+        // Login successful
+        res.status(200).json({
+            message: "Login successful",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Login error:", error.message);
+
+        res.status(500).json({
+            message: "Server error"
+        });
+    }
+};
+
+// ===============================
+// CHANGE PASSWORD
+// ===============================
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        // Check required fields
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                message: "Please provide current password and new password"
+            });
+        }
+
+        // Check password length
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                message: "New password must be at least 8 characters long"
+            });
+        }
+
+        // Find logged-in user
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        // Verify current password
+        const isPasswordCorrect = await bcrypt.compare(
+            currentPassword,
+            user.password
+        );
+
+        if (!isPasswordCorrect) {
+            return res.status(401).json({
+                message: "Current password is incorrect"
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Save new password
+        user.password = hashedPassword;
+
+        await user.save();
+
+        res.status(200).json({
+            message: "Password changed successfully"
+        });
+
+    } catch (error) {
+        console.error("Change password error:", error.message);
+
+        res.status(500).json({
+            message: "Server error"
+        });
+    }
+};
+
+
+// ===============================
+// EXPORT FUNCTIONS
+// ===============================
+module.exports = {
+    registerUser,
+    loginUser,
+    changePassword
+};
